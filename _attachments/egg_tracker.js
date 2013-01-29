@@ -10,43 +10,89 @@ var root = d3.select(document.body),
             incCount = eggCounter.append('a').classed('action', true).classed('up', true).text("+"),
         graph = root.append('svg:svg');
 
+var dayDoc = null;
+function _loadDay(day) {
+    dayDoc = null;
+    updateCount();
+    var req = d3.json("_view/count_by_day?key=" + encodeURIComponent(JSON.stringify(day)) + "&include_docs=true", function (e,d) {
+        //if (e) { alert(e.responseText); throw e; }
+        if (e) { d = {rows:[]}; }
+        if (d.rows.length) {
+            dayDoc = d.rows[0].doc;
+        } else {
+            var dateString = day.map(function (n) { return (n > 9) ? n : '0'+n; }).join('');
+            dayDoc = {_id:"eggcount-"+dateString, 'isEggcount':true, date:day, count:0};
+        }
+        updateCount();
+    });
+}
+
+function _saveCurrentDay() {
+    decCount.classed('unavailable', true);
+    incCount.classed('unavailable', true);
+    d3.xhr("../..").header('Content-Type', "application/json").post(JSON.stringify(dayDoc), function (e,d) {
+        updateCount();
+        if (e) { alert(e.responseText); throw e; }
+        dayDoc._rev = JSON.parse(d.responseText).rev;
+    });
+}
+
+
+function _dayToArray(day) {
+    return [day.getFullYear(), day.getMonth()+1, day.getDate()];
+}
 
 var day = new Date(),
     today = new Date(+day);
 function updateDay() {
-    var isToday = (+day === +today);
-    dayLabel.text( day.getFullYear() + '-' + (day.getMonth()+1) + '-' + day.getDate() );
+    var isToday = (+day === +today),
+        dayArray = _dayToArray(day);
+    dayLabel.text(dayArray.join('-'));
     nextDay.classed('unavailable', isToday);
     dayLabel.classed('unavailable', isToday);
+    if (!dayDoc || dayDoc.date.join('-') != dayArray.join('-')) _loadDay(dayArray);
 }
 prevDay.on('click', function () {
+    if (d3.select(this).classed('unavailable')) return;
     day.setDate(day.getDate() - 1);
     updateDay();
 });
 dayLabel.on('click', function () {
+    if (d3.select(this).classed('unavailable')) return;
     day.setTime(+today);
     updateDay();
 });
 nextDay.on('click', function () {
-    if (nextDay.classed('unavailable')) return;
+    if (d3.select(this).classed('unavailable')) return;
     day.setDate(day.getDate() + 1);
     updateDay();
 });
 updateDay();
 
-var count = 1;
 function updateCount() {
-    countDisplay.text(count);
-    countLabel.text((count === 1) ? "egg" : "eggs");
-    decCount.classed('unavailable', count < 1);
+    if (!dayDoc) {
+        countDisplay.text("-");
+        countLabel.text("Loading…");
+        decCount.classed('unavailable', true);
+        incCount.classed('unavailable', true);
+    } else {
+        var count = dayDoc.count;
+        countDisplay.text(count);
+        countLabel.text((count === 1) ? "egg" : "eggs");
+        decCount.classed('unavailable', count < 1);
+        incCount.classed('unavailable', false);
+    }
 }
 decCount.on('click', function () {
-    if (decCount.classed('unavailable')) return;
-    count -= 1;
+    if (d3.select(this).classed('unavailable')) return;
+    dayDoc.count -= 1;
+    _saveCurrentDay();
     updateCount();
 });
 incCount.on('click', function () {
-    count += 1;
+    if (d3.select(this).classed('unavailable')) return;
+    dayDoc.count += 1;
+    _saveCurrentDay();
     updateCount();
 });
 updateCount();
