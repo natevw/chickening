@@ -1,0 +1,55 @@
+body {
+    font-family: "Comic Sans MS", sans-serif;
+}
+
+a.action {
+    cursor: pointer;
+    -webkit-user-select: none;
+}
+
+.dayPicker {
+    font-size: 44px;
+}
+.dayPicker .label {
+    margin: 0 0.5em;
+    border: none !important;
+}
+.dayPicker .action {
+    border: 1px dashed rgba(128,128,128, 0.5);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.eggCounter .value {
+    font-size: 72px;
+    margin: 0 1em;
+}
+
+.eggCounter {
+    float: left;
+    position: relative;
+}
+.eggCounter .label {
+    position: absolute;
+    left: 42%;        /* nasty quick hack to get label underneath value */
+    bottom: -5px;
+}
+
+.eggCounter .action {
+    display: inline-block;
+    width: 44px; height: 44px;
+    border: 1px solid black;
+    border-radius: 10px;
+    font-size: 44px;
+    text-align: center;
+    line-height: 0.85em;
+}
+
+.eggCounter .label {
+    margin-left: 1ex;
+}
+
+.action.unavailable {
+    border: none;
+    cursor: auto;
+}
