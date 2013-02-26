@@ -10,14 +10,28 @@ var root = d3.select(document.body),
             incCount = eggCounter.append('a').classed('action', true).classed('up', true).text("+"),
         graph = root.append('svg:svg').classed('graph', true);
 
+
+var db = null;
+new Pouch("test", function (e, d) {
+    if (e) { alert(e); throw e; }
+    db = d;
+    var hostURL = window.location + "/../../../";
+    Pouch.replicate(hostURL, db, {continuous:false, filter:'_view', query_params:{view:"eggcounting/count_by_day"}});
+    Pouch.replicate(db, hostURL, {continuous:true});
+    db.allDocs(function (e,d) { console.log("Currently there are", d.rows.length, "documents locally"); })
+    updateDay();
+});
+
 var dayDoc = null,
     graphInfo = [];
 function _loadDay(day) {
+    if (!db) return;
     dayDoc = null;
     updateCount();
-    var req = d3.json("_view/count_by_day?key=" + encodeURIComponent(JSON.stringify(day)) + "&include_docs=true", function (e,d) {
-        //if (e) { alert(e.responseText); throw e; }
-        if (e) { d = {rows:[]}; }
+    //d3.json("_view/count_by_day?key=" + encodeURIComponent(JSON.stringify(day)) + "&include_docs=true", function (e,d) {
+    function map(doc) { emit(doc.date); }
+    db.query({map:map}, {include_docs:true, reduce:false, key:day}, function (e,d) {
+        if (e) { alert(JSON.stringify(e)); throw e; }
         if (d.rows.length) {
             dayDoc = d.rows[0].doc;
         } else {
@@ -31,10 +45,11 @@ function _loadDay(day) {
 function _saveCurrentDay() {
     decCount.classed('unavailable', true);
     incCount.classed('unavailable', true);
-    d3.xhr("../..").header('Content-Type', "application/json").post(JSON.stringify(dayDoc), function (e,d) {
+    //d3.xhr("../..").header('Content-Type', "application/json").post(JSON.stringify(dayDoc), function (e,d) {
+    db.put(dayDoc, function (e,d) {
         updateCount();
-        if (e) { alert(e.responseText); throw e; }
-        dayDoc._rev = JSON.parse(d.responseText).rev;
+        if (e) { alert(JSON.stringify(e)); throw e; }
+        dayDoc._rev = d.rev;
         
         // HACK: update view results without refetching...not terribly efficient
         var savedString = dayDoc.date.join('-');
@@ -77,7 +92,7 @@ nextDay.on('click', function () {
     day.setDate(day.getDate() + 1);
     updateDay();
 });
-updateDay();
+//updateDay();
 
 function updateCount() {
     if (!dayDoc) {
