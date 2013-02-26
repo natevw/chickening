@@ -53,3 +53,13 @@ a.action {
     border: none;
     cursor: auto;
 }
+
+.graph {
+    display: block;
+    clear: both;
+    width: 300px;
+    height: 40px;
+    position: relative;
+    top: 44px;
+    border-bottom: 1px dashed grey;
+}

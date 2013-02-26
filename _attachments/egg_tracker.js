@@ -8,7 +8,7 @@ var root = d3.select(document.body),
             countDisplay = eggCounter.append('span').classed('value', true).text("0"),
             countLabel = eggCounter.append('span').classed('label', true).text('eggs'),
             incCount = eggCounter.append('a').classed('action', true).classed('up', true).text("+"),
-        graph = root.append('svg:svg');
+        graph = root.append('svg:svg').classed('graph', true);
 
 var dayDoc = null;
 function _loadDay(day) {
@@ -96,3 +96,22 @@ incCount.on('click', function () {
     updateCount();
 });
 updateCount();
+
+
+var graphInfo = [];
+function updateGraph() {
+    var points = graph.selectAll('.count').data(graphInfo),
+        xScale = d3.time.scale().domain(d3.extent(graphInfo, function (d) { return d.date; })).range([0+5, graph.property('clientWidth')-5]),
+        yScale = d3.scale.linear().domain(d3.extent(graphInfo, function (d) { return d.eggs; })).range([graph.property('clientHeight')-5, 0+5]);
+    points.enter().append('svg:circle').classed('count', true).attr('r', 2);
+    points.attr('cx', function (d) { return xScale(d.date); }).attr('cy', function (d) { return yScale(d.eggs); });
+    points.exit().remove();
+}
+d3.json("_view/count_by_day", function (e,d) {
+    if (e) { alert(e.responseText); throw e; }
+    console.log(d.rows);
+    graphInfo = d.rows.map(function (row) {
+        return {date: new Date(row.key[0], row.key[1], row.key[2]), eggs: row.value};
+    });
+    updateGraph();
+});
