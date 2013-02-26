@@ -10,7 +10,8 @@ var root = d3.select(document.body),
             incCount = eggCounter.append('a').classed('action', true).classed('up', true).text("+"),
         graph = root.append('svg:svg').classed('graph', true);
 
-var dayDoc = null;
+var dayDoc = null,
+    graphInfo = [];
 function _loadDay(day) {
     dayDoc = null;
     updateCount();
@@ -34,6 +35,14 @@ function _saveCurrentDay() {
         updateCount();
         if (e) { alert(e.responseText); throw e; }
         dayDoc._rev = JSON.parse(d.responseText).rev;
+        
+        // HACK: update view results without refetching...not terribly efficient
+        var savedString = dayDoc.date.join('-');
+        graphInfo.forEach(function (d) {
+            var dayString = _dayToArray(d.date).join('-');
+            if (dayString === savedString) d.eggs = dayDoc.count;
+        });
+        updateGraph();
     });
 }
 
@@ -51,6 +60,7 @@ function updateDay() {
     nextDay.classed('unavailable', isToday);
     dayLabel.classed('unavailable', isToday);
     if (!dayDoc || dayDoc.date.join('-') != dayArray.join('-')) _loadDay(dayArray);
+    updateGraph();
 }
 prevDay.on('click', function () {
     if (d3.select(this).classed('unavailable')) return;
@@ -97,21 +107,19 @@ incCount.on('click', function () {
 });
 updateCount();
 
-
-var graphInfo = [];
 function updateGraph() {
     var points = graph.selectAll('.count').data(graphInfo),
         xScale = d3.time.scale().domain(d3.extent(graphInfo, function (d) { return d.date; })).range([0+5, graph.property('clientWidth')-5]),
         yScale = d3.scale.linear().domain(d3.extent(graphInfo, function (d) { return d.eggs; })).range([graph.property('clientHeight')-5, 0+5]);
     points.enter().append('svg:circle').classed('count', true).attr('r', 2);
     points.attr('cx', function (d) { return xScale(d.date); }).attr('cy', function (d) { return yScale(d.eggs); });
+    points.classed('active', function (d) { return _dayToArray(d.date).join('-') === _dayToArray(day).join('-'); });
     points.exit().remove();
 }
 d3.json("_view/count_by_day", function (e,d) {
     if (e) { alert(e.responseText); throw e; }
-    console.log(d.rows);
     graphInfo = d.rows.map(function (row) {
-        return {date: new Date(row.key[0], row.key[1], row.key[2]), eggs: row.value};
+        return {date: new Date(row.key[0], row.key[1]-1, row.key[2]), eggs: row.value};
     });
     updateGraph();
 });

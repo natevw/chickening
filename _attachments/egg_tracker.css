@@ -61,5 +61,11 @@ a.action {
     height: 40px;
     position: relative;
     top: 44px;
-    border-bottom: 1px dashed grey;
+    border-bottom: 1px dotted silver;
+}
+.graph .count {
+    fill: grey;
+}
+.graph .active.count {
+    fill: blue;
 }
