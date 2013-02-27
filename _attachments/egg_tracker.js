@@ -16,8 +16,18 @@ new Pouch("test", function (e, d) {
     if (e) { alert(e); throw e; }
     db = d;
     var hostURL = window.location + "/../../../";
-    Pouch.replicate(hostURL, db, {continuous:false, filter:'_view', query_params:{view:"eggcounting/count_by_day"}});
-    Pouch.replicate(db, hostURL, {continuous:true});
+    Pouch._replicate_hack = function (source, target, opts) {
+        if (!opts.continuous) return Pouch.replicate.apply(this, arguments);
+        // workaround continuous replication checkpoint bug
+        // follows strategy described at https://github.com/daleharvey/pouchdb/issues/234#issuecomment-14108660
+        opts.continuous = false;
+        Pouch.replicate(source, target, opts, function () {
+            opts.continuous = true;
+            Pouch.replicate(source, target, opts);
+        });
+    }
+    Pouch._replicate_hack(hostURL, db, {continuous:true, filter:'_view', query_params:{view:"eggcounting/count_by_day"}});
+    Pouch._replicate_hack(db, hostURL, {continuous:true});
     db.allDocs(function (e,d) { console.log("Currently there are", d.rows.length, "documents locally"); })
     updateDay();
 });
