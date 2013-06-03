@@ -11,8 +11,10 @@ var root = d3.select(document.body),
         graph = root.append('svg:svg').classed('graph', true);
 
 
+var db = true;
+/*
 var db = null;
-new Pouch("test", function (e, d) {
+new Pouch("test2", function (e, d) {
     if (e) { alert(e); throw e; }
     db = d;
     var hostURL = window.location + "/../../../";
@@ -31,6 +33,7 @@ new Pouch("test", function (e, d) {
     db.allDocs(function (e,d) { console.log("Currently there are", d.rows.length, "documents locally"); })
     updateDay();
 });
+*/
 
 var dayDoc = null,
     graphInfo = [];
@@ -38,9 +41,9 @@ function _loadDay(day) {
     if (!db) return;
     dayDoc = null;
     updateCount();
-    //d3.json("_view/count_by_day?key=" + encodeURIComponent(JSON.stringify(day)) + "&include_docs=true", function (e,d) {
-    function map(doc) { emit(doc.date); }
-    db.query({map:map}, {include_docs:true, reduce:false, key:day}, function (e,d) {
+    d3.json("_view/count_by_day?key=" + encodeURIComponent(JSON.stringify(day)) + "&include_docs=true", function (e,d) {
+    //function map(doc) { emit(doc.date); }
+    //db.query({map:map}, {include_docs:true, reduce:false, key:day}, function (e,d) {
         if (e) { alert(JSON.stringify(e)); throw e; }
         if (d.rows.length) {
             dayDoc = d.rows[0].doc;
@@ -55,8 +58,8 @@ function _loadDay(day) {
 function _saveCurrentDay() {
     decCount.classed('unavailable', true);
     incCount.classed('unavailable', true);
-    //d3.xhr("../..").header('Content-Type', "application/json").post(JSON.stringify(dayDoc), function (e,d) {
-    db.put(dayDoc, function (e,d) {
+    d3.xhr("../..").header('Content-Type', "application/json").post(JSON.stringify(dayDoc), function (e,d) { if (!e) d = JSON.parse(d.response);
+    //db.put(dayDoc, function (e,d) {
         updateCount();
         if (e) { alert(JSON.stringify(e)); throw e; }
         dayDoc._rev = d.rev;
@@ -102,7 +105,7 @@ nextDay.on('click', function () {
     day.setDate(day.getDate() + 1);
     updateDay();
 });
-//updateDay();
+updateDay();
 
 function updateCount() {
     if (!dayDoc) {
